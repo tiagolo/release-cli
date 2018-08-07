@@ -1,0 +1,30 @@
+plugins {
+    id 'groovy'
+    id 'application'
+}
+
+group 'br.com.mv.devops'
+version '2018.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.5.1'
+    compile 'info.picocli:picocli:3.4.0'
+    compile 'org.ajoberstar.grgit:grgit-core:3.0.0-beta.1'
+    compile 'org.apache.logging.log4j:log4j-slf4j18-impl:2.11.1'
+    testCompile 'junit:junit:4.12'
+}
+
+mainClassName = 'br.com.mv.devops.release.Main'
+
+jar {
+    manifest {
+        attributes("Implementation-Title": rootProject.name,
+                "Implementation-Version": rootProject.version,
+                "Main-Class": mainClassName)
+    }
+}
