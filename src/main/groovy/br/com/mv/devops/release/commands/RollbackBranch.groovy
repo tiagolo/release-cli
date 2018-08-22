@@ -1,43 +1,30 @@
 package br.com.mv.devops.release.commands
 
-import org.ajoberstar.grgit.Branch
 import org.ajoberstar.grgit.Grgit
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.submodule.SubmoduleWalk
 import picocli.CommandLine
-
-import java.util.concurrent.Callable
 
 @CommandLine.Command(name = "RollbackBranch",
         description = "Retorna o repositório local para o estado inicial de acondo com o repositório remoto")
-class RollbackBranch implements Runnable {
+class RollbackBranch extends BaseCommand {
 
-    @CommandLine.Option(names = ["b", "target-branch"], description = "")
+    @CommandLine.Option(names = ["-b", "--target-branch"], description = "Branch alvo para restauração do repositório local")
     String targetBranch = "master"
 
-    @CommandLine.Option(names = ["r", "target-remote"], description = "")
-    String targetRemote = "origin"
-
     @Override
-    void run() throws Exception {
-        Grgit grgit = Grgit.open(dir: System.getenv("pwd"))
-        Repository repository = grgit.repository.jgit.repository
+    void recursiveRunCommand(Repository repository) {
+        super.recursiveRunCommand(repository)
 
-        rollbackBranch(repository)
-    }
+        Grgit git = Grgit.open(dir: repository.getDirectory().getAbsolutePath())
 
-    void rollbackBranch(Repository repository) {
-        SubmoduleWalk walk = SubmoduleWalk.forIndex(repository)
-        while (walk.next()) {
-            rollbackBranch(walk.repository)
-        }
+        logger.info("Entering repository: ${repository.getWorkTree().getName()}")
+        logger.info("Repository remotes: ${git.remote.list().collect { it.url }}")
 
         //Remove Checkout target branch
-        Grgit git = Grgit.open(dir: repository.getDirectory().getAbsolutePath())
-        if(git.branch.list().find { it.name == targetBranch})
+        if (git.branch.list().find { it.name == targetBranch })
             git.checkout(branch: targetBranch)
         else
-            git.checkout(branch: targetBranch, createBranch: true, startPoint: "${targetRemote}/${targetBranch}")
+            git.checkout(branch: targetBranch, createBranch: true, startPoint: "${parent.remote}/${targetBranch}")
 
         // Remove Branches
         def branchesToRemove = git.branch.list()
@@ -50,9 +37,9 @@ class RollbackBranch implements Runnable {
         def tagsToRemove = git.tag.list()
                 .collect { it.name }
         if (tagsToRemove)
-            git.tag.remove (names: tagsToRemove)
+            git.tag.remove(names: tagsToRemove)
 
         git.fetch()
-        git.reset(mode: 'hard', commit: "${targetRemote}/${targetBranch}")
+        git.reset(mode: 'hard', commit: "${parent.remote}/${targetBranch}")
     }
 }
