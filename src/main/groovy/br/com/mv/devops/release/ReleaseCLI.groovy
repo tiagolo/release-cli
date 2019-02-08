@@ -1,9 +1,9 @@
 package br.com.mv.devops.release
 
-import br.com.mv.devops.release.commands.BaseCommand
-import br.com.mv.devops.release.commands.PrepareBranch
-import br.com.mv.devops.release.commands.PrepareRelease
-import br.com.mv.devops.release.commands.RollbackBranch
+import br.com.mv.devops.release.commands.operations.PrepareBranch
+import br.com.mv.devops.release.commands.operations.PrepareRelease
+import br.com.mv.devops.release.commands.operations.RollbackBranch
+import br.com.mv.devops.release.commands.base.AbstractCommand
 import br.com.mv.devops.release.providers.ManifestVersionProvider
 import picocli.CommandLine
 
@@ -11,10 +11,13 @@ import picocli.CommandLine
         subcommands = [RollbackBranch.class, PrepareBranch.class, PrepareRelease.class],
         versionProvider = ManifestVersionProvider.class,
         description = "Command Line Interface for releasing software with git")
-class ReleaseCLI extends BaseCommand {
+class ReleaseCLI extends AbstractCommand {
 
     @CommandLine.Option(names = ["-v", "--version"], versionHelp = true, description = "display version info")
     boolean versionInfoRequested
+
+    @CommandLine.Option(names = ["-r", "--remote"], description = "Repositório remoto que servirá de referência para rollback local")
+    String remote = "origin"
 
     static void main(String[] args) {
         CommandLine.run(new ReleaseCLI(), args)

@@ -1,30 +1,28 @@
-package br.com.mv.devops.release.commands
+package br.com.mv.devops.release.commands.operations
 
+import br.com.mv.devops.release.commands.base.AbstractRecursiveCommand
 import org.ajoberstar.grgit.Grgit
 import org.eclipse.jgit.lib.Repository
 import picocli.CommandLine
 
 @CommandLine.Command(name = "RollbackBranch",
         description = "Retorna o repositório local para o estado inicial de acondo com o repositório remoto")
-class RollbackBranch extends BaseCommand {
+class RollbackBranch extends AbstractRecursiveCommand {
 
-    @CommandLine.Option(names = ["-b", "--target-branch"], description = "Branch alvo para restauração do repositório local")
-    String targetBranch = "master"
+    String getBranch() {
+        configuration.workflow.source
+    }
 
     @Override
     void recursiveRunCommand(Repository repository) {
         super.recursiveRunCommand(repository)
-
-        Grgit git = Grgit.open(dir: repository.getDirectory().getAbsolutePath())
-
-        logger.info("Entering repository: ${repository.getWorkTree().getName()}")
-        logger.info("Repository remotes: ${git.remote.list().collect { it.url }}")
+        Grgit git = openGit(repository)
 
         //Remove Checkout target branch
-        if (git.branch.list().find { it.name == targetBranch })
-            git.checkout(branch: targetBranch)
+        if (git.branch.list().find { it.name == branch })
+            git.checkout(branch: branch)
         else
-            git.checkout(branch: targetBranch, createBranch: true, startPoint: "${parent.remote}/${targetBranch}")
+            git.checkout(branch: branch, createBranch: true, startPoint: "${parent.remote}/${branch}")
 
         // Remove Branches
         def branchesToRemove = git.branch.list()
@@ -40,6 +38,7 @@ class RollbackBranch extends BaseCommand {
             git.tag.remove(names: tagsToRemove)
 
         git.fetch()
-        git.reset(mode: 'hard', commit: "${parent.remote}/${targetBranch}")
+        git.reset(mode: 'hard', commit: "${parent.remote}/${branch}")
+        git.clean()
     }
 }

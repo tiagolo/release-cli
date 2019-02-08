@@ -1,0 +1,21 @@
+version: 2018.23.0-SNAPSHOT
+
+files:
+  pom.xml: <version>${version}</version>
+  .actionscriptProperties: ${version}
+  package.json: ${version}
+
+workflows:
+  release:
+    source: develop
+    merge:
+      - master
+      - develop
+      - baseline
+
+  hotfix:
+    source: master
+    startReleaseCandidate: false
+    conditionalMerge:
+      - release
+      - develop

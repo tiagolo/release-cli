@@ -17,15 +17,58 @@ dependencies {
     compile 'org.ajoberstar.grgit:grgit-core:3.0.0-beta.1'
     compile 'org.yaml:snakeyaml:1.21'
     compile 'org.apache.logging.log4j:log4j-slf4j18-impl:2.11.1'
-    testCompile 'junit:junit:4.12'
+    testCompile 'io.cucumber:cucumber-java:4.2.0'
+    testCompile 'io.cucumber:cucumber-junit:4.2.0'
 }
 
 mainClassName = 'br.com.mv.devops.release.ReleaseCLI'
+
+configurations {
+    cucumberRuntime {
+        extendsFrom testRuntime
+    }
+}
+
+task cucumber() {
+    dependsOn assemble, compileTestJava
+    doLast {
+        javaexec {
+            main = "cucumber.api.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = ['--plugin', 'pretty', '--glue', 'br.com.mv', 'src/test/resources']
+        }
+    }
+}
+
+check.dependsOn cucumber
 
 jar {
     manifest {
         attributes("Implementation-Title": rootProject.name,
                 "Implementation-Version": rootProject.version,
                 "Main-Class": mainClassName)
+    }
+}
+
+task generateAutoCompletion(type: JavaExec) {
+    classpath = sourceSets.main.runtimeClasspath
+    main = 'picocli.AutoComplete'
+
+    // arguments to pass to the application
+    args '--force'
+    args '--completionScript'
+    args "$buildDir/completion/${rootProject.name}_completion.sh"
+    args mainClassName
+
+    outputs.dir "$buildDir/completion"
+}
+
+distributions {
+    main {
+        contents {
+            from(generateAutoCompletion) {
+                into "bin"
+            }
+        }
     }
 }
